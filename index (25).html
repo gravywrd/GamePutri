@@ -1,0 +1,781 @@
+<html lang="id" class="scroll-smooth" >
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Si Putri Penjual Bakso</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
+  />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Baloo+2&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    body {
+      font-family: 'Baloo 2', cursive;
+      background-color: #ffc0cb; /* pink background */
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+  <div id="app" class="flex-grow flex flex-col max-w-4xl mx-auto p-4">
+    <!-- Title -->
+    <header class="text-center mb-6">
+      <h1 class="text-4xl font-extrabold text-pink-800 drop-shadow-md">
+        Si Putri Penjual Bakso
+      </h1>
+      <p class="text-pink-700 mt-1 font-semibold">
+        Game jual beli bakso 2D sederhana
+      </p>
+      <p class="text-pink-700 mt-1 font-semibold">
+        Rating Pelayanan: <span :class="rating >= 75 ? 'text-green-700' : rating >= 40 ? 'text-yellow-700' : 'text-red-700'">{{ rating }}%</span>
+      </p>
+    </header>
+
+    <!-- Authentication -->
+    <section v-if="!loggedIn" class="max-w-md mx-auto w-full bg-pink-100 rounded-lg p-6 shadow-md">
+      <div class="mb-4">
+        <h2 class="text-2xl font-bold text-pink-900 mb-3">Daftar Akun</h2>
+        <form @submit.prevent="register" class="space-y-3">
+          <input
+            v-model="registerForm.username"
+            type="text"
+            placeholder="Username"
+            required
+            class="w-full px-3 py-2 rounded border border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-500"
+          />
+          <input
+            v-model="registerForm.password"
+            type="password"
+            placeholder="Password"
+            required
+            class="w-full px-3 py-2 rounded border border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-500"
+          />
+          <button
+            type="submit"
+            class="w-full bg-pink-500 hover:bg-pink-600 text-white font-semibold py-2 rounded transition"
+          >
+            Daftar
+          </button>
+        </form>
+      </div>
+
+      <div>
+        <h2 class="text-2xl font-bold text-pink-900 mb-3">Login</h2>
+        <form @submit.prevent="login" class="space-y-3">
+          <input
+            v-model="loginForm.username"
+            type="text"
+            placeholder="Username"
+            required
+            class="w-full px-3 py-2 rounded border border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-500"
+          />
+          <input
+            v-model="loginForm.password"
+            type="password"
+            placeholder="Password"
+            required
+            class="w-full px-3 py-2 rounded border border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-500"
+          />
+          <button
+            type="submit"
+            class="w-full bg-pink-500 hover:bg-pink-600 text-white font-semibold py-2 rounded transition"
+          >
+            Login
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- Game -->
+    <section v-if="loggedIn" class="flex-grow flex flex-col">
+      <div class="flex justify-between items-center mb-4">
+        <div>
+          <p class="text-pink-900 font-semibold text-lg">
+            Halo, <span class="capitalize">{{ currentUser.username }}</span>!
+            <span v-if="isAdmin" class="ml-2 px-2 py-0.5 text-xs font-bold text-white bg-pink-700 rounded">Admin</span>
+          </p>
+          <p class="text-pink-800 font-bold text-xl">
+            Uang: Rp {{ uang.toLocaleString('id-ID') }}
+          </p>
+          <p class="text-pink-700 font-semibold">
+            Gerobak: {{ gerobak.nama }} (Keuntungan: {{ gerobak.keuntungan }}%)
+          </p>
+          <p class="text-pink-700 font-semibold">
+            Rating Pelayanan: <span :class="rating >= 75 ? 'text-green-700' : rating >= 40 ? 'text-yellow-700' : 'text-red-700'">{{ rating }}%</span>
+          </p>
+        </div>
+        <button
+          @click="logout"
+          class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded font-semibold"
+          title="Logout"
+        >
+          <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
+      </div>
+
+      <div class="flex flex-col md:flex-row gap-6 flex-grow overflow-auto">
+        <!-- Gerobak Section -->
+        <div class="md:w-1/3 bg-pink-100 rounded-lg p-4 shadow-md flex flex-col">
+          <h3 class="text-pink-900 font-bold text-xl mb-3 text-center">Gerobak</h3>
+          <div class="space-y-4 flex-grow overflow-auto">
+            <div
+              v-for="(g, index) in gerobakList"
+              :key="g.id"
+              class="border border-pink-400 rounded p-3 flex flex-col items-center"
+            >
+              <img
+                :src="g.img"
+                :alt="`Ilustrasi gerobak ${g.nama} berwarna cerah dengan desain sederhana`"
+                class="w-32 h-20 object-contain mb-2"
+              />
+              <p class="font-semibold text-pink-800">{{ g.nama }}</p>
+              <p class="text-pink-700">Harga: Rp {{ g.harga.toLocaleString('id-ID') }}</p>
+              <p class="text-pink-700">Keuntungan: {{ g.keuntungan }}%</p>
+              <p class="text-pink-700">Waktu Masak: {{ g.waktuMasak }} detik</p>
+              <button
+                @click="beliGerobak(index)"
+                :disabled="uang < g.harga || gerobak.id === g.id"
+                class="mt-2 w-full bg-pink-500 hover:bg-pink-600 text-white font-semibold py-1 rounded disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                Beli
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bahan Bakso Section -->
+        <div class="md:w-1/3 bg-pink-100 rounded-lg p-4 shadow-md flex flex-col">
+          <h3 class="text-pink-900 font-bold text-xl mb-3 text-center">Bahan Bakso & Bumbu</h3>
+          <div class="space-y-4 flex-grow overflow-auto">
+            <div
+              v-for="(b, index) in bahanList"
+              :key="b.id"
+              class="border border-pink-400 rounded p-3 flex flex-col items-center"
+            >
+              <img
+                :src="b.img"
+                :alt="`Ilustrasi bahan bakso atau bumbu berupa ${b.nama} segar dan menarik`"
+                class="w-24 h-24 object-contain mb-2"
+              />
+              <p class="font-semibold text-pink-800">{{ b.nama }}</p>
+              <p class="text-pink-700">Harga: Rp {{ b.harga.toLocaleString('id-ID') }}</p>
+              <p class="text-pink-700">Stok: {{ b.stok }}</p>
+              <button
+                @click="beliBahan(index)"
+                :disabled="uang < b.harga"
+                class="mt-2 w-full bg-pink-500 hover:bg-pink-600 text-white font-semibold py-1 rounded disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                Beli
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Racik & Jual Bakso Section -->
+        <div class="md:w-1/3 bg-pink-100 rounded-lg p-4 shadow-md flex flex-col">
+          <h3 class="text-pink-900 font-bold text-xl mb-3 text-center">Racik & Jual Bakso</h3>
+          <div class="flex flex-col flex-grow overflow-auto">
+            <div class="mb-4">
+              <p class="text-pink-800 font-semibold mb-2">Pilih Bahan & Bumbu untuk Racik Bakso:</p>
+              <div class="grid grid-cols-3 gap-2">
+                <button
+                  v-for="(b, index) in bahanList"
+                  :key="b.id"
+                  @click="toggleRacikBahan(index)"
+                  :class="[
+                    'py-1 px-2 rounded border font-semibold text-sm',
+                    racikBahan.includes(b.id)
+                      ? 'bg-pink-500 text-white border-pink-600'
+                      : 'bg-pink-50 text-pink-700 border-pink-300 hover:bg-pink-100'
+                  ]"
+                  :disabled="b.stok === 0 || isCooking"
+                  :title="b.stok === 0 ? 'Stok habis' : ''"
+                >
+                  {{ b.nama }}
+                </button>
+              </div>
+            </div>
+
+            <button
+              @click="jualBakso"
+              :disabled="racikBahan.length === 0 || isCooking"
+              class="bg-pink-600 hover:bg-pink-700 text-white font-bold py-2 rounded transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Jual Bakso
+            </button>
+
+            <div v-if="isCooking" class="mt-3 text-center text-pink-900 font-semibold">
+              Memasak bakso... Sisa waktu: {{ cookTimeLeft }} detik
+            </div>
+
+            <div class="mt-4 flex-grow overflow-auto">
+              <h4 class="text-pink-900 font-bold mb-2 text-center">Pelanggan</h4>
+              <div
+                v-for="(p, index) in pelanggan"
+                :key="p.id"
+                class="border border-pink-400 rounded p-2 mb-2 bg-pink-50 flex flex-col"
+              >
+                <div class="flex justify-between items-center mb-1">
+                  <p class="font-semibold text-pink-800">
+                    {{ p.nama }} ({{ p.gender }})
+                  </p>
+                  <p class="text-pink-700 text-sm font-semibold">
+                    Kesabaran: {{ formatKesabaran(p.kesabaran) }}
+                  </p>
+                </div>
+                <p class="text-pink-700 text-sm mb-1">
+                  Ingin bakso dengan bahan:
+                  <span class="font-semibold">
+                    {{ p.bahan.map((id) => bahanList.find((b) => b.id === id)?.nama).join(', ') }}
+                  </span>
+                </p>
+                <p class="text-pink-700 text-sm">Harga yang mau dibayar: Rp {{ p.harga.toLocaleString('id-ID') }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Credit Section -->
+      <footer class="mt-6 text-center text-pink-700 font-semibold">
+        Dibuat oleh <span class="font-bold">ChiutChyiu</span>
+      </footer>
+
+      <!-- Game Over Modal -->
+      <div
+        v-if="gameOver"
+        class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50"
+      >
+        <div class="bg-pink-100 rounded-lg p-6 max-w-sm w-full text-center shadow-lg">
+          <h2 class="text-3xl font-extrabold text-red-700 mb-4">Game Over</h2>
+          <p class="text-pink-900 mb-6">Uang Anda habis. Anda kalah!</p>
+          <button
+            @click="resetGame"
+            class="bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-6 rounded transition"
+          >
+            Main Lagi
+          </button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script>
+    const { createApp, reactive, ref, computed, watch } = Vue;
+
+    createApp({
+      setup() {
+        // Users stored in localStorage
+        const usersKey = 'si-putri-penjual-bakso-users';
+        const users = reactive(JSON.parse(localStorage.getItem(usersKey) || '{}'));
+
+        // Add admin account if not exists
+        if (!users['putricantik']) {
+          users['putricantik'] = { password: 'putrigemoy', uang: 1000000000, gerobakId: 3, bahanStok: {}, rating: 100 };
+          localStorage.setItem(usersKey, JSON.stringify(users));
+        }
+
+        // Current logged in user
+        const currentUser = reactive({ username: '' });
+
+        // Forms
+        const registerForm = reactive({ username: '', password: '' });
+        const loginForm = reactive({ username: '', password: '' });
+
+        // Game state
+        const loggedIn = ref(false);
+        const uang = ref(50000);
+        const gameOver = ref(false);
+
+        // Cooking state
+        const isCooking = ref(false);
+        const cookTimeLeft = ref(0);
+        let cookInterval = null;
+
+        // Rating state (0-100)
+        const rating = ref(80);
+
+        // Gerobak data with cooking times
+        const gerobakList = [
+          {
+            id: 1,
+            nama: 'Gerobak Noob',
+            harga: 10000,
+            keuntungan: 10,
+            waktuMasak: 20,
+            img: 'https://placehold.co/256x160/FFD966/000000?text=Gerobak+Noob',
+          },
+          {
+            id: 2,
+            nama: 'Gerobak Normal',
+            harga: 100000,
+            keuntungan: 25,
+            waktuMasak: 9,
+            img: 'https://placehold.co/256x160/F4B183/000000?text=Gerobak+Normal',
+          },
+          {
+            id: 3,
+            nama: 'Gerobak Promax',
+            harga: 100000000,
+            keuntungan: 50,
+            waktuMasak: 1,
+            img: 'https://placehold.co/256x160/9BC2E6/000000?text=Gerobak+Promax',
+          },
+        ];
+
+        // Default gerobak is Noob
+        const gerobak = reactive({ ...gerobakList[0] });
+
+        // Bahan bakso & bumbu data (ditambah bumbu baru: seledri, kecap, cuka, sambal)
+        const bahanList = reactive([
+          {
+            id: 1,
+            nama: 'Daging Sapi',
+            harga: 5000,
+            stok: 0,
+            img: 'https://placehold.co/96x96/8B4513/FFFFFF?text=Daging+Sapi',
+          },
+          {
+            id: 2,
+            nama: 'Tepung Tapioka',
+            harga: 3000,
+            stok: 0,
+            img: 'https://placehold.co/96x96/F5DEB3/000000?text=Tepung+Tapioka',
+          },
+          {
+            id: 3,
+            nama: 'Bawang Putih',
+            harga: 2000,
+            stok: 0,
+            img: 'https://placehold.co/96x96/FFFACD/000000?text=Bawang+Putih',
+          },
+          {
+            id: 4,
+            nama: 'Garam',
+            harga: 1000,
+            stok: 0,
+            img: 'https://placehold.co/96x96/FFFFFF/000000?text=Garam',
+          },
+          {
+            id: 5,
+            nama: 'Merica',
+            harga: 1500,
+            stok: 0,
+            img: 'https://placehold.co/96x96/000000/FFFFFF?text=Merica',
+          },
+          {
+            id: 6,
+            nama: 'Sayur',
+            harga: 2500,
+            stok: 0,
+            img: 'https://placehold.co/96x96/228B22/FFFFFF?text=Sayur',
+          },
+          {
+            id: 7,
+            nama: 'Bawang Goreng',
+            harga: 3500,
+            stok: 0,
+            img: 'https://placehold.co/96x96/D2B48C/000000?text=Bawang+Goreng',
+          },
+          {
+            id: 8,
+            nama: 'Bawang Merah',
+            harga: 3000,
+            stok: 0,
+            img: 'https://placehold.co/96x96/8B0000/FFFFFF?text=Bawang+Merah',
+          },
+          {
+            id: 9,
+            nama: 'Seledri',
+            harga: 2000,
+            stok: 0,
+            img: 'https://placehold.co/96x96/006400/FFFFFF?text=Seledri',
+          },
+          {
+            id: 10,
+            nama: 'Kecap',
+            harga: 4000,
+            stok: 0,
+            img: 'https://placehold.co/96x96/654321/FFFFFF?text=Kecap',
+          },
+          {
+            id: 11,
+            nama: 'Cuka',
+            harga: 3000,
+            stok: 0,
+            img: 'https://placehold.co/96x96/8B4513/FFFFFF?text=Cuka',
+          },
+          {
+            id: 12,
+            nama: 'Sambal',
+            harga: 3500,
+            stok: 0,
+            img: 'https://placehold.co/96x96/FF4500/FFFFFF?text=Sambal',
+          },
+        ]);
+
+        // Racik bahan bakso (array of bahan id)
+        const racikBahan = reactive([]);
+
+        // Pelanggan (array of objects with id, bahan array, harga, nama, gender, kesabaran)
+        const pelanggan = reactive([]);
+
+        // Nama dan gender random generator
+        const namaPria = ['Andi', 'Budi', 'Cahyo', 'Dedi', 'Eko', 'Fajar', 'Gilang', 'Hadi', 'Iwan', 'Joko'];
+        const namaWanita = ['Ani', 'Bunga', 'Citra', 'Dewi', 'Eka', 'Fitri', 'Gita', 'Hani', 'Indah', 'Jeni'];
+        const genders = ['Pria', 'Wanita'];
+
+        // Helper: Save users to localStorage
+        function saveUsers() {
+          localStorage.setItem(usersKey, JSON.stringify(users));
+        }
+
+        // Register function
+        function register() {
+          const username = registerForm.username.trim().toLowerCase();
+          const password = registerForm.password;
+          if (!username || !password) {
+            alert('Username dan password harus diisi');
+            return;
+          }
+          if (users[username]) {
+            alert('Username sudah terdaftar');
+            return;
+          }
+          users[username] = { password, uang: 50000, gerobakId: 1, bahanStok: {}, rating: 80 };
+          saveUsers();
+          alert('Registrasi berhasil! Silakan login.');
+          registerForm.username = '';
+          registerForm.password = '';
+        }
+
+        // Login function
+        function login() {
+          const username = loginForm.username.trim().toLowerCase();
+          const password = loginForm.password;
+          if (!users[username]) {
+            alert('Username tidak ditemukan');
+            return;
+          }
+          if (users[username].password !== password) {
+            alert('Password salah');
+            return;
+          }
+          currentUser.username = username;
+          // Load user data
+          uang.value = users[username].uang ?? 50000;
+          const gerobakId = users[username].gerobakId ?? 1;
+          const g = gerobakList.find((x) => x.id === gerobakId);
+          if (g) {
+            Object.assign(gerobak, g);
+          }
+          // Load bahan stok
+          bahanList.forEach((b) => {
+            b.stok = users[username].bahanStok?.[b.id] ?? 0;
+          });
+          rating.value = users[username].rating ?? 80;
+          loggedIn.value = true;
+          gameOver.value = false;
+          pelanggan.splice(0, pelanggan.length);
+          racikBahan.splice(0, racikBahan.length);
+          generatePelanggan();
+          loginForm.username = '';
+          loginForm.password = '';
+        }
+
+        // Logout function
+        function logout() {
+          saveUserData();
+          loggedIn.value = false;
+          currentUser.username = '';
+          uang.value = 50000;
+          racikBahan.splice(0, racikBahan.length);
+          pelanggan.splice(0, pelanggan.length);
+          bahanList.forEach((b) => (b.stok = 0));
+          Object.assign(gerobak, gerobakList[0]);
+          gameOver.value = false;
+          clearInterval(pelangganInterval);
+          clearInterval(cookInterval);
+          clearInterval(kesabaranInterval);
+        }
+
+        // Save current user data to users object and localStorage
+        function saveUserData() {
+          if (!currentUser.username) return;
+          users[currentUser.username].uang = uang.value;
+          users[currentUser.username].gerobakId = gerobak.id;
+          users[currentUser.username].bahanStok = {};
+          bahanList.forEach((b) => {
+            users[currentUser.username].bahanStok[b.id] = b.stok;
+          });
+          users[currentUser.username].rating = rating.value;
+          saveUsers();
+        }
+
+        // Beli gerobak
+        function beliGerobak(index) {
+          const g = gerobakList[index];
+          if (uang.value >= g.harga && gerobak.id !== g.id) {
+            uang.value -= g.harga;
+            Object.assign(gerobak, g);
+            saveUserData();
+            alert(`Berhasil membeli ${g.nama}`);
+          }
+        }
+
+        // Beli bahan bakso & bumbu
+        function beliBahan(index) {
+          const b = bahanList[index];
+          if (uang.value >= b.harga) {
+            uang.value -= b.harga;
+            b.stok++;
+            saveUserData();
+          }
+        }
+
+        // Toggle racik bahan bakso & bumbu
+        function toggleRacikBahan(index) {
+          if (isCooking.value) return;
+          const b = bahanList[index];
+          const idx = racikBahan.indexOf(b.id);
+          if (idx === -1) {
+            if (b.stok > 0) {
+              racikBahan.push(b.id);
+            }
+          } else {
+            racikBahan.splice(idx, 1);
+          }
+        }
+
+        // Generate pelanggan baru setiap 15 detik (maks 5 pelanggan)
+        function generatePelanggan() {
+          if (pelanggan.length >= 5) return;
+          const id = Date.now();
+          // Pelanggan ingin 1-5 bahan acak (bisa termasuk bumbu)
+          const bahanCount = Math.floor(Math.random() * 5) + 1;
+          const bahanIds = [];
+          while (bahanIds.length < bahanCount) {
+            const randBahan = bahanList[Math.floor(Math.random() * bahanList.length)];
+            if (!bahanIds.includes(randBahan.id)) {
+              bahanIds.push(randBahan.id);
+            }
+          }
+          // Harga yang mau dibayar dihitung dari bahan * gerobak keuntungan * random faktor
+          let baseHarga = bahanIds.reduce((acc, id) => {
+            const b = bahanList.find((x) => x.id === id);
+            return acc + (b ? b.harga : 0);
+          }, 0);
+          baseHarga = Math.floor(baseHarga * (1 + gerobak.keuntungan / 100));
+          // Tambah random 0-20% harga
+          const harga = Math.floor(baseHarga * (1 + Math.random() * 0.2));
+          // Random gender
+          const gender = genders[Math.floor(Math.random() * genders.length)];
+          // Random nama sesuai gender
+          const nama =
+            gender === 'Pria'
+              ? namaPria[Math.floor(Math.random() * namaPria.length)]
+              : namaWanita[Math.floor(Math.random() * namaWanita.length)];
+          // Kesabaran random antara 5 menit (300 detik) sampai 4 hari (345600 detik)
+          const kesabaran = Math.floor(Math.random() * (345600 - 300 + 1)) + 300;
+          pelanggan.push({ id, bahan: bahanIds, harga, nama, gender, kesabaran });
+        }
+
+        // Jual bakso sesuai racikan pelanggan dengan waktu memasak sesuai gerobak
+        function jualBakso() {
+          if (racikBahan.length === 0) {
+            alert('Pilih bahan bakso terlebih dahulu');
+            return;
+          }
+          if (isCooking.value) {
+            alert('Sedang memasak, tunggu sampai selesai');
+            return;
+          }
+          // Cari pelanggan yang cocok (bahan sama persis)
+          const racikSorted = [...racikBahan].sort((a, b) => a - b);
+          const pelangganIndex = pelanggan.findIndex((p) => {
+            if (p.bahan.length !== racikSorted.length) return false;
+            const pSorted = [...p.bahan].sort((a, b) => a - b);
+            return pSorted.every((val, idx) => val === racikSorted[idx]);
+          });
+          if (pelangganIndex === -1) {
+            alert('Tidak ada pelanggan yang ingin racikan bakso tersebut');
+            return;
+          }
+          // Cek stok bahan cukup
+          for (const id of racikBahan) {
+            const b = bahanList.find((x) => x.id === id);
+            if (!b || b.stok <= 0) {
+              alert(`Stok bahan ${b.nama} tidak cukup`);
+              return;
+            }
+          }
+          // Mulai memasak
+          isCooking.value = true;
+          cookTimeLeft.value = gerobak.waktuMasak;
+          cookInterval = setInterval(() => {
+            cookTimeLeft.value--;
+            if (cookTimeLeft.value <= 0) {
+              clearInterval(cookInterval);
+              cookInterval = null;
+              // Setelah masak selesai, proses jual
+              prosesJual(pelangganIndex);
+              isCooking.value = false;
+            }
+          }, 1000);
+        }
+
+        // Proses jual setelah masak selesai
+        function prosesJual(pelangganIndex) {
+          // Kurangi stok bahan
+          for (const id of racikBahan) {
+            const b = bahanList.find((x) => x.id === id);
+            b.stok--;
+          }
+          // Tambah uang sesuai harga pelanggan
+          uang.value += pelanggan[pelangganIndex].harga;
+
+          // Update rating pelayanan berdasarkan kesabaran pelanggan
+          const pelangganObj = pelanggan[pelangganIndex];
+          const maxKesabaran = 345600; // 4 hari in seconds
+          const kesabaranLeft = pelangganObj.kesabaran;
+          // Jika pelanggan dilayani cepat (lebih dari 75% kesabaran tersisa), rating naik
+          // Jika kurang dari 25% kesabaran tersisa, rating turun
+          if (kesabaranLeft >= maxKesabaran * 0.75) {
+            rating.value = Math.min(100, rating.value + 5);
+          } else if (kesabaranLeft <= maxKesabaran * 0.25) {
+            rating.value = Math.max(0, rating.value - 10);
+          } else {
+            // Sedang-sedang, rating naik sedikit
+            rating.value = Math.min(100, rating.value + 1);
+          }
+
+          // Hapus pelanggan yang sudah dilayani
+          pelanggan.splice(pelangganIndex, 1);
+          // Reset racik bahan
+          racikBahan.splice(0, racikBahan.length);
+          saveUserData();
+          alert('Berhasil menjual bakso!');
+        }
+
+        // Cek game over jika uang habis
+        function cekGameOver() {
+          if (uang.value <= 0) {
+            gameOver.value = true;
+            uang.value = 0;
+            clearInterval(pelangganInterval);
+            clearInterval(cookInterval);
+            clearInterval(kesabaranInterval);
+          }
+        }
+
+        // Kurangi kesabaran pelanggan tiap detik, hapus pelanggan jika kesabaran habis dan turunkan rating
+        function updateKesabaran() {
+          for (let i = pelanggan.length - 1; i >= 0; i--) {
+            pelanggan[i].kesabaran--;
+            if (pelanggan[i].kesabaran <= 0) {
+              pelanggan.splice(i, 1);
+              // Turunkan rating karena pelanggan kabur
+              rating.value = Math.max(0, rating.value - 15);
+            }
+          }
+        }
+
+        // Format kesabaran ke format jam:menit:detik
+        function formatKesabaran(seconds) {
+          if (seconds <= 0) return 'Habis';
+          const d = Math.floor(seconds / 86400);
+          const h = Math.floor((seconds % 86400) / 3600);
+          const m = Math.floor((seconds % 3600) / 60);
+          const s = seconds % 60;
+          let str = '';
+          if (d > 0) str += d + 'd ';
+          if (h > 0) str += h + 'j ';
+          if (m > 0) str += m + 'm ';
+          str += s + 'd';
+          return str.trim();
+        }
+
+        // Check if current user is admin
+        const isAdmin = computed(() => currentUser.username.toLowerCase() === 'putricantik');
+
+        // Reset game
+        function resetGame() {
+          uang.value = 50000;
+          Object.assign(gerobak, gerobakList[0]);
+          bahanList.forEach((b) => (b.stok = 0));
+          pelanggan.splice(0, pelanggan.length);
+          racikBahan.splice(0, racikBahan.length);
+          gameOver.value = false;
+          isCooking.value = false;
+          cookTimeLeft.value = 0;
+          rating.value = 80;
+          saveUserData();
+          generatePelanggan();
+          clearInterval(pelangganInterval);
+          pelangganInterval = setInterval(() => {
+            if (loggedIn.value && !gameOver.value) {
+              generatePelanggan();
+            }
+          }, 15000);
+          clearInterval(kesabaranInterval);
+          kesabaranInterval = setInterval(() => {
+            if (loggedIn.value && !gameOver.value) {
+              updateKesabaran();
+            }
+          }, 1000);
+        }
+
+        // Interval generate pelanggan tiap 15 detik
+        let pelangganInterval = setInterval(() => {
+          if (loggedIn.value && !gameOver.value) {
+            generatePelanggan();
+          }
+        }, 15000);
+
+        // Interval update kesabaran tiap detik
+        let kesabaranInterval = setInterval(() => {
+          if (loggedIn.value && !gameOver.value) {
+            updateKesabaran();
+          }
+        }, 1000);
+
+        // Watch uang for game over
+        watch(uang, () => {
+          cekGameOver();
+        });
+
+        return {
+          registerForm,
+          loginForm,
+          register,
+          login,
+          loggedIn,
+          currentUser,
+          uang,
+          gerobakList,
+          gerobak,
+          beliGerobak,
+          bahanList,
+          beliBahan,
+          racikBahan,
+          toggleRacikBahan,
+          jualBakso,
+          pelanggan,
+          logout,
+          gameOver,
+          resetGame,
+          isCooking,
+          cookTimeLeft,
+          rating,
+          formatKesabaran,
+          isAdmin,
+        };
+      },
+    }).mount('#app');
+  </script>
+</body>
+</html>
